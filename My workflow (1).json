@@ -1,0 +1,485 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -336,
+        -80
+      ],
+      "id": "ee442d06-a8e7-48cf-9135-bfaf5f7fadfb",
+      "name": "When chat message received",
+      "webhookId": "70896b1d-a1cb-4e0e-8d8b-9a0095d9b538"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are the Productivity Manager Agent, the orchestrator of a personal productivity system. Your job is to listen to the user's message and decide which specialist agent is best suited to handle the request. Do not perform the storage or extraction yourself; instead, delegate the task to one of the following tools:\n\n1.  Task_Agent: Use this if the user mentions things they need to do, to-do items, or general tasks (e.g., 'I need to...', 'add task...', 'to-do...').\n2.  Note_Agent: Use this if the user wants to save an idea, a thought, or general information they want to remember (e.g., 'note that...', 'idea:', 'remember that...').\n3.  Reminder_Agent: Use this only if the user provides a specific time or date for a reminder (e.g., 'remind me tomorrow', 'remind me at 5pm', 'remind me on Friday')"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -128,
+        -80
+      ],
+      "id": "48bcc8f9-4ac7-4eef-b3f8-cd85fdb15ec9",
+      "name": "productivity manager"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        96
+      ],
+      "id": "49fa33d8-6eeb-41ab-8a77-4de1ab9eb9f2",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "Ky8PoBT4AIUrYaha",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -112,
+        96
+      ],
+      "id": "a67c8ee5-5221-47a1-803b-bffd3cb513bc",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "toolDescription": "You are the Task Agent. Your sole responsibility is to handle 'to-do' items and actionable tasks that the user needs to perform.  Your Operational Steps:Extraction: Pull a clean, concise task description from the user's message.  Priority Assessment: Analyze the context to assign a priority level:  High: If the message contains 'urgent', 'asap', or 'important'.  Medium: For standard, everyday tasks.  Low: For 'someday' or 'maybe' items.  Data Logging: Use the Save_Task tool to append a new row to the 'Tasks' tab in Google Sheets.  Field Mapping: Ensure the following fields are sent to the tool: Date, Task, Priority, and Status (default to 'Pending').  Confirmation: After successfully saving, reply with: 'Task added: [task description] (Priority: [priority level])",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are the Task Agent, a specialist designed to process and organize to-do items. Your goal is to take raw user input and transform it into a structured task format.  Your Rules:Extract: Identify the core action the user needs to perform.  Prioritize: Assign a priority based on urgency: 'High' for words like 'asap' or 'important', 'Medium' for standard tasks, and 'Low' for 'someday' items.  Execute: Use your connected tool to save the task to the 'Tasks' tab in Google Sheets.  Format: The data must be organized into columns: Date, Task, Priority, and Status.  Confirm: Once the tool executes, provide a short confirmation to the user stating the task and priority assigned."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        32,
+        128
+      ],
+      "id": "1267621d-ad2b-413e-84e4-aa8d2aea73e7",
+      "name": "task agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        256
+      ],
+      "id": "908c34a9-55b6-4815-aeba-c874c297c033",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "apY8SNTsmMatdzbT",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool whenever the user wants to save an idea, a thought, or general information that isn't a task. Call this agent for messages starting with 'note that...', 'idea:', or 'remember that...'. It will summarize the info and save it to the 'Notes' database",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are the Note Agent. Your job is to capture and organize ideas, thoughts, or general information that the user wants to remember.  Your Steps:Summarize: Create a short, 3-5 word topic title for the note.  Capture: Save the full message as the main body of the note.  Store: Use your tool to save this to the 'Notes' tab in the Google Sheet.  Organize: Fill in the columns for Date, Topic, and Note.  Reply: Tell the user: 'Note saved under the topic: [topic title]'."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        288,
+        128
+      ],
+      "id": "2c4be6f3-bb96-4b94-8afd-d49972a46bb3",
+      "name": "notes agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        272,
+        304
+      ],
+      "id": "2e134051-aaf8-4d2a-be20-3df5ffc20876",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "BiDZMOHiaI42bkRy",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "\"Call this tool whenever the user wants to be reminded of something at a specific time or date. Use it for messages like 'remind me at...', 'remind me tomorrow', or 'notify me on [date]'. This agent is responsible for calculating the correct date and saving it to the Reminders database.\"",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are the Reminder Agent. Your job is to handle all time-based reminders for the user.  \n\nYour Steps:\n\nExtract Task: Identify exactly what the user wants to be reminded about.  \n\nCalculate Date: Convert relative dates like 'tomorrow' or 'next week' into the actual date format (YYYY-MM-DD).  \n\nExtract Time: Convert any mentioned time into a 24-hour format (HH:mm).  \n\nStore: Use your tool to save this to the Reminders tab in Google Sheets.  \n\nOrganize: Fill in the columns for Created Date, Reminder, Due_Date, and Due_Time.  \n\nConfirm: Reply to the user with the exact date and time the reminder was set for."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        544,
+        128
+      ],
+      "id": "5f62713c-a550-4ac6-8bb6-c07a185f6513",
+      "name": "reminder agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {
+          "maxOutputTokens": 2048
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        528,
+        304
+      ],
+      "id": "d21b5029-4ec2-42a0-a84c-240de77acfe8",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "apY8SNTsmMatdzbT",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1qo14IO1GR7vK0mXDMctfJeiRrcFYJuVonhQZ80D6ooQ",
+          "mode": "list",
+          "cachedResultName": "Product Manager",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qo14IO1GR7vK0mXDMctfJeiRrcFYJuVonhQZ80D6ooQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "task",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qo14IO1GR7vK0mXDMctfJeiRrcFYJuVonhQZ80D6ooQ/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        80,
+        384
+      ],
+      "id": "6a4808ea-9f07-49eb-af11-50c5d0861517",
+      "name": "Get row(s) in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hwUYg2SKoS6alRFW",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1qo14IO1GR7vK0mXDMctfJeiRrcFYJuVonhQZ80D6ooQ",
+          "mode": "list",
+          "cachedResultName": "Product Manager",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qo14IO1GR7vK0mXDMctfJeiRrcFYJuVonhQZ80D6ooQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 300174207,
+          "mode": "list",
+          "cachedResultName": "notes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qo14IO1GR7vK0mXDMctfJeiRrcFYJuVonhQZ80D6ooQ/edit#gid=300174207"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        400,
+        400
+      ],
+      "id": "e25a41e2-7224-4a63-931d-2851c01affe7",
+      "name": "Get row(s) in sheet in Google Sheets1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hwUYg2SKoS6alRFW",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qo14IO1GR7vK0mXDMctfJeiRrcFYJuVonhQZ80D6ooQ",
+          "mode": "list",
+          "cachedResultName": "Product Manager",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qo14IO1GR7vK0mXDMctfJeiRrcFYJuVonhQZ80D6ooQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 58421019,
+          "mode": "list",
+          "cachedResultName": "reminder",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qo14IO1GR7vK0mXDMctfJeiRrcFYJuVonhQZ80D6ooQ/edit#gid=58421019"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "create": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('create', ``, 'string') }}",
+            "reminder": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('reminder', ``, 'string') }}",
+            "due date": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('due_date', ``, 'string') }}",
+            "due time": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('due_time', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "create",
+              "displayName": "create",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "reminder",
+              "displayName": "reminder",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "due date",
+              "displayName": "due date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "due time",
+              "displayName": "due time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        752,
+        336
+      ],
+      "id": "afb8bdaa-28a2-4b38-80c7-3a19bd70a546",
+      "name": "Append row in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hwUYg2SKoS6alRFW",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "productivity manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "productivity manager",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "productivity manager",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "task agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "productivity manager",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "task agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notes agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "productivity manager",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "notes agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reminder agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "productivity manager",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "reminder agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "task agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet in Google Sheets1": {
+      "ai_tool": [
+        [
+          {
+            "node": "notes agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "reminder agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "0a4fa5de-784f-4030-a384-ff9e23e24af2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "825ccea0ae60859bbd34fd30a201fecb73d58d5f39169d01578d690581b93bf5"
+  },
+  "id": "q3fCnt3knmX201tf",
+  "tags": []
+}
